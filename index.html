@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خدمات السواقي - دليل القرية الشامل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+        .modal-hidden { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="bg-emerald-700 shadow-md text-white sticky top-0 z-40">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <a href="#" class="flex items-center gap-2">
+            <i class="fa-solid fa-store text-2xl text-amber-300"></i>
+            <h1 class="text-xl font-bold">خدمات السواقي</h1>
+        </a>
+        <div id="authButtons" class="flex gap-2 items-center"></div>
+    </div>
+</header>
+
+<main class="container mx-auto px-4 py-6 flex-grow">
+    <div id="configBanner" class="hidden mb-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm">
+        <b>الموقع غير متصل بـ Firebase بعد.</b> افتح الملف وضع بيانات مشروعك مكان <code>PUT_YOUR_...</code> في <code>firebaseConfig</code> (الخطوات في ملف README).
+    </div>
+    <div id="view"></div>
+</main>
+
+<footer class="bg-white border-t border-gray-200 py-4 mt-8 text-center text-xs text-gray-500">
+    <p>جميع الحقوق محفوظة © خدمات السواقي 2026</p>
+</footer>
+
+<!-- Auth Modal -->
+<div id="authModal" class="modal-hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative max-h-[95vh] overflow-y-auto">
+        <button data-action="closeAuth" class="absolute top-4 left-4 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+
+        <div class="flex gap-2 mb-5 mt-1">
+            <button data-action="tabLogin" id="tabLogin" class="flex-1 py-2 rounded-xl font-bold text-sm">دخول</button>
+            <button data-action="tabRegister" id="tabRegister" class="flex-1 py-2 rounded-xl font-bold text-sm">سجل محلك</button>
+        </div>
+
+        <!-- Login form -->
+        <form id="loginForm" class="space-y-3">
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">البريد الإلكتروني</label>
+                <input type="email" id="lEmail" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">كلمة المرور</label>
+                <input type="password" id="lPass" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">دخول</button>
+            <button type="button" data-action="resetPass" class="w-full text-xs text-emerald-700 underline">نسيت كلمة المرور؟</button>
+        </form>
+
+        <!-- Register form -->
+        <form id="registerForm" class="space-y-3 hidden">
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">اسم المحل</label>
+                <input type="text" id="rShopName" required maxlength="60" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">القسم</label>
+                <select id="rCategory" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">رقم الواتساب (للتواصل معك)</label>
+                <input type="tel" id="rPhone" placeholder="مثال: 01012345678" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">البريد الإلكتروني (للدخول)</label>
+                <input type="email" id="rEmail" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">كلمة المرور (6 حروف أو أرقام على الأقل)</label>
+                <input type="password" id="rPass" required minlength="6" dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">تسجيل وإنشاء المحل</button>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm px-4 py-2 rounded-xl shadow-lg max-w-[90vw] text-center"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, orderBy, query, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ============================================================
+   1) ضع بيانات مشروعك هنا (من Firebase Console > Project settings)
+   ============================================================ */
+const firebaseConfig = {
+    apiKey: "AIzaSyCVKH5QK0ZeTLMpvzHsaLhCuCGh0x3WzsI",
+    authDomain: "sawaqi.firebaseapp.com",
+    projectId: "sawaqi",
+    appId: "1:372720770718:web:2f5a462bf013de8066258f"
+};
+
+const CATEGORIES = ['ملابس', 'مطاعم', 'صيدليات', 'سوبر ماركت', 'خدمات وصيانة'];
+const configured = !firebaseConfig.apiKey.startsWith('PUT_');
+
+let auth, db;
+if (configured) {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+} else {
+    document.getElementById('configBanner').classList.remove('hidden');
+}
+
+/* ================= Helpers ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+// رقم مصري -> صيغة دولية صحيحة للواتساب (01012345678 -> 201012345678)
+function waNumber(phone) {
+    let d = String(phone).replace(/\D/g, '');
+    if (d.startsWith('00')) d = d.slice(2);
+    if (d.startsWith('0')) d = '20' + d.slice(1);
+    return d;
+}
+function waLink(shop, text) {
+    return `https://wa.me/${waNumber(shop.phone)}?text=${encodeURIComponent(text)}`;
+}
+const validEgyptPhone = p => /^01[0125]\d{8}$/.test(String(p).replace(/\D/g, ''));
+const safeImg = src => typeof src === 'string' && src.startsWith('data:image/');
+
+function authError(e) {
+    const m = {
+        'auth/email-already-in-use': 'البريد ده مسجل قبل كده، جرب تدخل.',
+        'auth/invalid-email': 'البريد الإلكتروني غير صحيح.',
+        'auth/weak-password': 'كلمة المرور ضعيفة (6 على الأقل).',
+        'auth/invalid-credential': 'البريد أو كلمة المرور غلط.',
+        'auth/user-not-found': 'البريد أو كلمة المرور غلط.',
+        'auth/wrong-password': 'البريد أو كلمة المرور غلط.',
+        'auth/too-many-requests': 'محاولات كتير، استنى شوية وجرب تاني.',
+        'auth/network-request-failed': 'مفيش اتصال بالإنترنت.',
+        'permission-denied': 'مفيش صلاحية للعملية دي.'
+    };
+    return m[e.code] || ('حصل خطأ: ' + (e.code || e.message));
+}
+
+// ضغط الصورة قبل الحفظ (عشان تفضل صغيرة ومجانية)
+function compressImage(file, maxDim = 640) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            let { width: w, height: h } = img;
+            const scale = Math.min(1, maxDim / Math.max(w, h));
+            w = Math.round(w * scale); h = Math.round(h * scale);
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            let out = c.toDataURL('image/jpeg', 0.72);
+            if (out.length > 250000) out = c.toDataURL('image/jpeg', 0.5);
+            if (out.length > 280000) return reject(new Error('الصورة كبيرة جداً'));
+            resolve(out);
+        };
+        img.onerror = () => reject(new Error('ملف الصورة غير صالح'));
+        img.src = url;
+    });
+}
+
+/* ================= State ================= */
+let user = null;
+let isAdmin = false;
+let shops = [];
+let currentFilter = 'all';
+let searchText = '';
+let productsUnsub = null;
+let products = [];
+let adminOpenShop = null;
+
+/* ================= Data listeners ================= */
+if (configured) {
+    onSnapshot(query(collection(db, 'shops'), orderBy('createdAt', 'desc')), snap => {
+        shops = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        render();
+    }, err => toast(authError(err)));
+
+    onAuthStateChanged(auth, async u => {
+        user = u;
+        isAdmin = false;
+        if (u) {
+            try { isAdmin = (await getDoc(doc(db, 'admins', u.uid))).exists(); } catch { isAdmin = false; }
+        }
+        render();
+    });
+}
+
+function watchProducts(shopId) {
+    if (productsUnsub) productsUnsub();
+    products = [];
+    if (!configured) return;
+    productsUnsub = onSnapshot(
+        query(collection(db, 'shops', shopId, 'products'), orderBy('createdAt', 'desc')),
+        snap => {
+            products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const route = location.hash;
+            if (route.startsWith('#shop/') || route === '#dashboard') renderProductsArea();
+        }
+    );
+}
+
+/* ================= Router / Render ================= */
+window.addEventListener('hashchange', render);
+
+function render() {
+    renderHeader();
+    const route = location.hash || '#';
+    if (route.startsWith('#shop/')) return renderShop(route.slice(6));
+    if (route === '#dashboard') return renderDashboard();
+    if (route === '#admin') return renderAdmin();
+    renderHome();
+}
+
+function renderHeader() {
+    const box = $('#authButtons');
+    const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold transition';
+    if (!user) {
+        box.innerHTML = `
+            <button data-action="openRegister" class="${btn} bg-amber-400 text-emerald-950 font-bold shadow hover:bg-amber-300"><i class="fa-solid fa-plus ml-1"></i> سجل محلك</button>
+            <button data-action="openLogin" class="${btn} bg-white/10 hover:bg-white/20">دخول</button>`;
+    } else {
+        box.innerHTML = `
+            ${isAdmin ? `<a href="#admin" class="${btn} bg-amber-400 text-emerald-950 font-bold">لوحة المدير</a>` : ''}
+            ${shops.some(s => s.id === user.uid) ? `<a href="#dashboard" class="${btn} bg-white/10 hover:bg-white/20">محلي</a>` : ''}
+            <button data-action="logout" class="${btn} bg-white/10 hover:bg-white/20">خروج</button>`;
+    }
+}
+
+/* ---------- Home ---------- */
+function renderHome() {
+    if (productsUnsub) { productsUnsub(); productsUnsub = null; }
+    $('#view').innerHTML = `
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-6 rounded-2xl shadow-lg mb-6 text-center">
+            <h2 class="text-2xl md:text-3xl font-black mb-2">دليل محلات وخدمات القرية</h2>
+            <p class="text-emerald-100 text-sm mb-4">تصفح محلات السواقي، شاهد المنتجات والعروض، وتواصل مباشرة مع أصحابها</p>
+            <div class="max-w-md mx-auto relative">
+                <input type="text" id="searchInput" value="${esc(searchText)}" placeholder="ابحث باسم المحل أو الخدمة..." class="w-full py-3 px-4 pr-10 rounded-xl text-gray-800 focus:outline-none shadow">
+                <i class="fa-solid fa-magnifying-glass absolute top-4 right-4 text-gray-400"></i>
+            </div>
+        </div>
+        <div class="mb-6">
+            <h3 class="font-bold text-gray-700 mb-3 text-lg"><i class="fa-solid fa-list ml-2 text-emerald-600"></i>الأقسام</h3>
+            <div id="cats" class="flex gap-2 overflow-x-auto pb-2"></div>
+        </div>
+        <h3 class="font-bold text-gray-700 mb-3 text-lg"><i class="fa-solid fa-shop ml-2 text-emerald-600"></i>المحلات المتاحة</h3>
+        <div id="shopsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>`;
+    renderCats();
+    renderGrid();
+}
+
+function renderCats() {
+    const on = 'bg-emerald-700 text-white shadow';
+    const off = 'bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50';
+    $('#cats').innerHTML = ['all', ...CATEGORIES].map(c =>
+        `<button data-action="cat" data-cat="${esc(c)}" class="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition ${currentFilter === c ? on : off}">${c === 'all' ? 'الكل' : esc(c)}</button>`
+    ).join('');
+}
+
+function renderGrid() {
+    const grid = $('#shopsGrid');
+    if (!grid) return;
+    const q = searchText.trim().toLowerCase();
+    const list = shops.filter(s =>
+        (currentFilter === 'all' || s.category === currentFilter) &&
+        (!q || (s.name || '').toLowerCase().includes(q))
+    );
+    if (!list.length) {
+        grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">لا توجد محلات مسجلة في هذا القسم حالياً</div>`;
+        return;
+    }
+    grid.innerHTML = list.map(s => `
+        <a href="#shop/${esc(s.id)}" class="block bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition transform hover:-translate-y-1">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold">${esc(s.category)}</span>
+                <i class="fa-solid fa-chevron-left text-gray-300"></i>
+            </div>
+            <h4 class="font-bold text-lg text-gray-800 mb-3">${esc(s.name)}</h4>
+            <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-semibold text-xs"><i class="fa-brands fa-whatsapp ml-1"></i> تواصل مباشر</span>
+        </a>`).join('');
+}
+
+/* ---------- Shop detail (visitor) ---------- */
+function renderShop(id) {
+    const shop = shops.find(s => s.id === id);
+    if (!shop) {
+        $('#view').innerHTML = `<a href="#" class="text-emerald-700 font-bold"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</a>
+            <p class="text-center text-gray-400 py-10">${shops.length ? 'المحل غير موجود.' : 'جاري التحميل...'}</p>`;
+        return;
+    }
+    if (!productsUnsub || renderShop.current !== id) { renderShop.current = id; watchProducts(id); }
+    $('#view').innerHTML = `
+        <a href="#" class="mb-4 text-emerald-700 font-bold inline-flex items-center gap-1 hover:underline"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</a>
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 mb-6 gap-4">
+                <div>
+                    <span class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold">${esc(shop.category)}</span>
+                    <h2 class="text-2xl font-black text-gray-800 mt-2">${esc(shop.name)}</h2>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <a href="${waLink(shop, `مرحباً ${shop.name}، أود الاستفسار عن منتجاتكم في خدمات السواقي.`)}" target="_blank" rel="noopener" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-center text-sm shadow"><i class="fa-brands fa-whatsapp ml-1 text-lg"></i> مراسلة واتساب</a>
+                    <a href="tel:${esc(String(shop.phone).replace(/[^\d+]/g, ''))}" class="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold text-center text-sm shadow"><i class="fa-solid fa-phone ml-1"></i> اتصال هاتفي</a>
+                </div>
+            </div>
+            <h3 class="font-bold text-lg text-gray-700 mb-4"><i class="fa-solid fa-bag-shopping ml-2 text-emerald-600"></i>منتجات وعروض المحل</h3>
+            <div id="productsArea" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </div>`;
+    renderProductsArea();
+}
+
+function productCard(p, shop, mode) {
+    const img = safeImg(p.image) ? `<img src="${p.image}" alt="" class="w-full h-44 object-cover">` : '';
+    const action = mode === 'vendor'
+        ? `<button data-action="delProduct" data-id="${esc(p.id)}" class="block w-full bg-red-50 text-red-600 hover:bg-red-100 py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-trash ml-1"></i> حذف المنتج</button>`
+        : `<a href="${waLink(shop, 'أريد طلب هذا المنتج: ' + p.name)}" target="_blank" rel="noopener" class="block bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl text-xs font-bold shadow transition"><i class="fa-brands fa-whatsapp ml-1"></i> اطلب عبر الواتساب</a>`;
+    return `
+        <div class="border rounded-2xl overflow-hidden bg-white shadow-sm flex flex-col justify-between">
+            ${img}
+            <div class="p-4 flex-grow">
+                <h4 class="font-bold text-gray-800">${esc(p.name)}</h4>
+                ${p.price ? `<p class="text-emerald-700 font-extrabold text-sm mt-1">${esc(p.price)}</p>` : ''}
+                ${p.desc ? `<p class="text-xs text-gray-600 mt-2 whitespace-pre-line">${esc(p.desc)}</p>` : ''}
+            </div>
+            <div class="p-4 bg-gray-50 border-t">${action}</div>
+        </div>`;
+}
+
+function renderProductsArea() {
+    const area = $('#productsArea');
+    if (!area) return;
+    const route = location.hash;
+    const isDash = route === '#dashboard';
+    const shopId = isDash ? (user && user.uid) : route.slice(6);
+    const shop = shops.find(s => s.id === shopId);
+    if (!shop) return;
+    area.innerHTML = products.length
+        ? products.map(p => productCard(p, shop, isDash ? 'vendor' : 'visitor')).join('')
+        : `<p class="text-gray-400 col-span-full">${isDash ? 'لم تقم بإضافة أي منتجات بعد.' : 'لا توجد منتجات معروضة حالياً لهذا المحل.'}</p>`;
+}
+
+/* ---------- Vendor dashboard ---------- */
+function renderDashboard() {
+    if (!user) { $('#view').innerHTML = `<p class="text-center text-gray-500 py-10">سجل دخولك الأول.</p>`; return; }
+    const shop = shops.find(s => s.id === user.uid);
+    if (!shop) {
+        $('#view').innerHTML = `<p class="text-center text-gray-500 py-10">${shops.length ? 'مفيش محل مرتبط بالحساب ده.' : 'جاري التحميل...'}</p>`;
+        return;
+    }
+    if (!productsUnsub || renderDashboard.current !== user.uid) { renderDashboard.current = user.uid; watchProducts(user.uid); }
+    $('#view').innerHTML = `
+        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800">${esc(shop.name)}</h3>
+                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md font-semibold">لوحة تحكم صاحب المحل</span>
+            </div>
+            <a href="#shop/${esc(shop.id)}" class="text-emerald-700 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100">شوف محلي</a>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-6 mb-6">
+            <h4 class="font-bold text-lg mb-4 text-gray-700">بيانات المحل</h4>
+            <form id="shopForm" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input type="text" id="eName" value="${esc(shop.name)}" required maxlength="60" class="p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <input type="tel" id="ePhone" value="${esc(shop.phone)}" required dir="ltr" class="p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <button type="submit" class="sm:col-span-2 bg-emerald-600 text-white font-bold py-2.5 rounded-xl hover:bg-emerald-700">حفظ التعديل</button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-6 mb-6">
+            <h4 class="font-bold text-lg mb-4 text-gray-700">إضافة منتج أو عرض جديد</h4>
+            <form id="productForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">اسم المنتج / الخدمة</label>
+                    <input type="text" id="pName" required maxlength="100" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">السعر (اختياري)</label>
+                    <input type="text" id="pPrice" maxlength="40" placeholder="مثال: 150 ج.م" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">صورة المنتج (من الموبايل أو الكاميرا)</label>
+                    <input type="file" id="pImage" accept="image/*" class="w-full p-2 border rounded-xl bg-gray-50 text-sm">
+                    <img id="pPreview" class="hidden mt-2 h-32 rounded-xl object-cover" alt="">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">تفاصيل أو وصف المنتج</label>
+                    <textarea id="pDesc" rows="2" maxlength="500" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                </div>
+                <button type="submit" id="pSubmit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">إضافة المنتج لمحلي</button>
+            </form>
+        </div>
+
+        <h4 class="font-bold text-lg mb-3 text-gray-700">منتجات محلك</h4>
+        <div id="productsArea" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>`;
+    renderProductsArea();
+}
+
+/* ---------- Admin ---------- */
+function renderAdmin() {
+    if (!isAdmin) {
+        $('#view').innerHTML = `<p class="text-center text-gray-500 py-10">${user ? 'الصفحة دي للمدير فقط.' : 'سجل دخولك كمدير.'}</p>`;
+        return;
+    }
+    $('#view').innerHTML = `
+        <div class="mb-6 bg-amber-50 p-4 rounded-xl border border-amber-200">
+            <h3 class="text-xl font-bold text-amber-900">لوحة تحكم المدير</h3>
+            <p class="text-xs text-amber-700">تقدر تحذف أي محل أو منتج مخالف. عدد المحلات: ${shops.length}</p>
+        </div>
+        <div class="space-y-4">
+            ${shops.map(s => `
+                <div class="bg-white rounded-2xl shadow p-4">
+                    <div class="flex justify-between items-center gap-2 flex-wrap">
+                        <div>
+                            <b class="text-gray-800">${esc(s.name)}</b>
+                            <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full mr-2">${esc(s.category)}</span>
+                            <div class="text-xs text-gray-500 mt-1" dir="ltr">${esc(s.phone)}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-action="adminProducts" data-id="${esc(s.id)}" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg font-semibold">المنتجات</button>
+                            <button data-action="adminDelShop" data-id="${esc(s.id)}" class="text-sm bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-semibold">حذف المحل</button>
+                        </div>
+                    </div>
+                    <div id="ap-${esc(s.id)}" class="mt-3 space-y-2"></div>
+                </div>`).join('') || '<p class="text-gray-400">لا توجد محلات.</p>'}
+        </div>`;
+}
+
+async function loadAdminProducts(shopId) {
+    const box = document.getElementById('ap-' + shopId);
+    if (!box) return;
+    if (box.dataset.open === '1') { box.innerHTML = ''; box.dataset.open = ''; return; }
+    const snap = await getDocs(collection(db, 'shops', shopId, 'products'));
+    box.dataset.open = '1';
+    box.innerHTML = snap.empty ? '<p class="text-xs text-gray-400">لا توجد منتجات.</p>' :
+        snap.docs.map(d => {
+            const p = d.data();
+            return `<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                <span>${esc(p.name)} ${p.price ? '— ' + esc(p.price) : ''}</span>
+                <button data-action="adminDelProduct" data-shop="${esc(shopId)}" data-id="${esc(d.id)}" class="text-red-600 text-xs font-bold">حذف</button>
+            </div>`;
+        }).join('');
+}
+
+/* ================= Auth modal ================= */
+function showAuth(tab) {
+    $('#rCategory').innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    $('#authModal').classList.remove('modal-hidden');
+    setTab(tab);
+}
+function setTab(tab) {
+    const on = 'bg-emerald-600 text-white', off = 'bg-gray-100 text-gray-600';
+    $('#loginForm').classList.toggle('hidden', tab !== 'login');
+    $('#registerForm').classList.toggle('hidden', tab !== 'register');
+    $('#tabLogin').className = `flex-1 py-2 rounded-xl font-bold text-sm ${tab === 'login' ? on : off}`;
+    $('#tabRegister').className = `flex-1 py-2 rounded-xl font-bold text-sm ${tab === 'register' ? on : off}`;
+}
+const closeAuth = () => $('#authModal').classList.add('modal-hidden');
+
+$('#loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!configured) return toast('اربط Firebase الأول.');
+    try {
+        await signInWithEmailAndPassword(auth, $('#lEmail').value.trim(), $('#lPass').value);
+        closeAuth();
+        e.target.reset();
+        toast('تم تسجيل الدخول');
+    } catch (err) { toast(authError(err)); }
+});
+
+$('#registerForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!configured) return toast('اربط Firebase الأول.');
+    const name = $('#rShopName').value.trim();
+    const phone = $('#rPhone').value.replace(/\s/g, '');
+    if (!validEgyptPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح (مثال: 01012345678)');
+    if (shops.some(s => (s.name || '').trim() === name)) return toast('اسم المحل مسجل قبل كده، اختار اسم تاني.');
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, $('#rEmail').value.trim(), $('#rPass').value);
+        await setDoc(doc(db, 'shops', cred.user.uid), {
+            name, category: $('#rCategory').value, phone, createdAt: serverTimestamp()
+        });
+        closeAuth();
+        e.target.reset();
+        location.hash = '#dashboard';
+        toast('تم إنشاء محلك! ابدأ أضف منتجاتك');
+    } catch (err) { toast(authError(err)); }
+});
+
+/* ================= Forms inside views (delegated) ================= */
+document.addEventListener('submit', async e => {
+    if (e.target.id === 'productForm') {
+        e.preventDefault();
+        if (!user) return;
+        const btn = $('#pSubmit');
+        btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+        try {
+            const file = $('#pImage').files[0];
+            const image = file ? await compressImage(file) : '';
+            await addDoc(collection(db, 'shops', user.uid, 'products'), {
+                name: $('#pName').value.trim(),
+                price: $('#pPrice').value.trim(),
+                desc: $('#pDesc').value.trim(),
+                image,
+                createdAt: serverTimestamp()
+            });
+            e.target.reset();
+            $('#pPreview').classList.add('hidden');
+            toast('تم إضافة المنتج لمحلك');
+        } catch (err) { toast(err.message && !err.code ? err.message : authError(err)); }
+        btn.disabled = false; btn.textContent = 'إضافة المنتج لمحلي';
+    }
+    if (e.target.id === 'shopForm') {
+        e.preventDefault();
+        const phone = $('#ePhone').value.replace(/\s/g, '');
+        if (!validEgyptPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح');
+        try {
+            await updateDoc(doc(db, 'shops', user.uid), { name: $('#eName').value.trim(), phone });
+            toast('تم حفظ التعديل');
+        } catch (err) { toast(authError(err)); }
+    }
+});
+
+document.addEventListener('input', e => {
+    if (e.target.id === 'searchInput') { searchText = e.target.value; renderGrid(); }
+});
+document.addEventListener('change', e => {
+    if (e.target.id === 'pImage') {
+        const f = e.target.files[0], prev = $('#pPreview');
+        if (f) { prev.src = URL.createObjectURL(f); prev.classList.remove('hidden'); } else prev.classList.add('hidden');
+    }
+});
+
+/* ================= Click actions ================= */
+document.addEventListener('click', async e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const a = el.dataset.action;
+    try {
+        if (a === 'openLogin') showAuth('login');
+        else if (a === 'openRegister') showAuth('register');
+        else if (a === 'closeAuth') closeAuth();
+        else if (a === 'tabLogin') setTab('login');
+        else if (a === 'tabRegister') setTab('register');
+        else if (a === 'cat') { currentFilter = el.dataset.cat; renderCats(); renderGrid(); }
+        else if (a === 'logout') { await signOut(auth); location.hash = '#'; toast('تم تسجيل الخروج'); }
+        else if (a === 'resetPass') {
+            const email = $('#lEmail').value.trim();
+            if (!email) return toast('اكتب بريدك في خانة البريد الأول.');
+            await sendPasswordResetEmail(auth, email);
+            toast('بعتنا لك رابط إعادة تعيين كلمة المرور على البريد.');
+        }
+        else if (a === 'delProduct') {
+            if (confirm('تأكيد حذف المنتج؟')) await deleteDoc(doc(db, 'shops', user.uid, 'products', el.dataset.id));
+        }
+        else if (a === 'adminProducts') await loadAdminProducts(el.dataset.id);
+        else if (a === 'adminDelProduct') {
+            if (confirm('حذف المنتج ده؟')) {
+                await deleteDoc(doc(db, 'shops', el.dataset.shop, 'products', el.dataset.id));
+                el.closest('div').remove();
+            }
+        }
+        else if (a === 'adminDelShop') {
+            if (!confirm('حذف المحل وكل منتجاته نهائياً؟')) return;
+            const snap = await getDocs(collection(db, 'shops', el.dataset.id, 'products'));
+            await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+            await deleteDoc(doc(db, 'shops', el.dataset.id));
+            toast('تم حذف المحل');
+        }
+    } catch (err) { toast(authError(err)); }
+});
+
+// أغلق النافذة عند الضغط خارجها
+$('#authModal').addEventListener('click', e => { if (e.target.id === 'authModal') closeAuth(); });
+
+render();
+</script>
+</body>
+</html>
