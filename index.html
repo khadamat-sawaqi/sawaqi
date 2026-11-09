@@ -3,36 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#047857">
     <title>خدمات السواقي - دليل القرية الشامل</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
         body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
         .modal-hidden { display: none !important; }
+        .cursor-zoom { cursor: zoom-in; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
 <!-- Header -->
 <header class="bg-emerald-700 shadow-md text-white sticky top-0 z-40">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-        <a href="#" class="flex items-center gap-2">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center gap-2">
+        <a href="#" class="flex items-center gap-2 shrink-0">
             <i class="fa-solid fa-store text-2xl text-amber-300"></i>
             <h1 class="text-xl font-bold">خدمات السواقي</h1>
         </a>
-        <div id="authButtons" class="flex gap-2 items-center"></div>
+        <div id="authButtons" class="flex gap-2 items-center flex-wrap justify-end"></div>
     </div>
+    <nav class="bg-emerald-800/60">
+        <div class="container mx-auto px-4 flex gap-1 text-sm font-bold">
+            <a href="#" id="navHome" class="px-4 py-2">المحلات</a>
+            <a href="#directory" id="navDir" class="px-4 py-2">دليل الأرقام</a>
+        </div>
+    </nav>
 </header>
 
 <main class="container mx-auto px-4 py-6 flex-grow">
     <div id="configBanner" class="hidden mb-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm">
-        <b>الموقع غير متصل بـ Firebase بعد.</b> افتح الملف وضع بيانات مشروعك مكان <code>PUT_YOUR_...</code> في <code>firebaseConfig</code> (الخطوات في ملف README).
+        <b>الموقع غير متصل بـ Firebase.</b> ضع بيانات مشروعك في <code>firebaseConfig</code>.
     </div>
     <div id="view"></div>
 </main>
 
-<footer class="bg-white border-t border-gray-200 py-4 mt-8 text-center text-xs text-gray-500">
+<footer class="bg-white border-t border-gray-200 py-5 mt-8 text-center text-xs text-gray-500">
+    <div id="supportBox" class="mb-2"></div>
     <p>جميع الحقوق محفوظة © خدمات السواقي 2026</p>
 </footer>
 
@@ -46,24 +58,28 @@
             <button data-action="tabRegister" id="tabRegister" class="flex-1 py-2 rounded-xl font-bold text-sm">سجل محلك</button>
         </div>
 
-        <!-- Login form -->
+        <!-- Login -->
         <form id="loginForm" class="space-y-3">
             <div>
-                <label class="block text-sm text-gray-600 mb-1">البريد الإلكتروني</label>
-                <input type="email" id="lEmail" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <label class="block text-sm text-gray-600 mb-1">رقم الموبايل</label>
+                <input type="tel" id="lPhone" placeholder="مثال: 01012345678" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
             <div>
                 <label class="block text-sm text-gray-600 mb-1">كلمة المرور</label>
-                <input type="password" id="lPass" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="relative">
+                    <input type="password" id="lPass" required dir="ltr" class="w-full p-3 pl-11 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <button type="button" data-action="togglePass" data-target="lPass" class="absolute left-3 top-3.5 text-gray-400"><i class="fa-regular fa-eye"></i></button>
+                </div>
             </div>
             <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">دخول</button>
-            <button type="button" data-action="resetPass" class="w-full text-xs text-emerald-700 underline">نسيت كلمة المرور؟</button>
+            <button type="button" data-action="forgot" class="w-full text-xs text-emerald-700 underline">نسيت كلمة المرور؟</button>
+            <div id="forgotBox" class="hidden text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 leading-6"></div>
         </form>
 
-        <!-- Register form -->
+        <!-- Register -->
         <form id="registerForm" class="space-y-3 hidden">
             <div>
-                <label class="block text-sm text-gray-600 mb-1">اسم المحل</label>
+                <label class="block text-sm text-gray-600 mb-1">اسم المحل أو الخدمة</label>
                 <input type="text" id="rShopName" required maxlength="60" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
             <div>
@@ -71,34 +87,39 @@
                 <select id="rCategory" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
             </div>
             <div>
-                <label class="block text-sm text-gray-600 mb-1">رقم الواتساب (للتواصل معك)</label>
+                <label class="block text-sm text-gray-600 mb-1">رقم الواتساب (هو رقم دخولك)</label>
                 <input type="tel" id="rPhone" placeholder="مثال: 01012345678" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
             <div>
-                <label class="block text-sm text-gray-600 mb-1">البريد الإلكتروني (للدخول)</label>
-                <input type="email" id="rEmail" required dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            </div>
-            <div>
                 <label class="block text-sm text-gray-600 mb-1">كلمة المرور (6 حروف أو أرقام على الأقل)</label>
-                <input type="password" id="rPass" required minlength="6" dir="ltr" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <div class="relative">
+                    <input type="password" id="rPass" required minlength="6" dir="ltr" class="w-full p-3 pl-11 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <button type="button" data-action="togglePass" data-target="rPass" class="absolute left-3 top-3.5 text-gray-400"><i class="fa-regular fa-eye"></i></button>
+                </div>
+                <p class="text-xs text-amber-700 mt-1">صوّر كلمة المرور أو اكتبها في مكان آمن، لأن الموقع مش بيقدر يظهرها لك بعد كده.</p>
             </div>
             <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">تسجيل وإنشاء المحل</button>
         </form>
     </div>
 </div>
 
-<!-- Toast -->
-<div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm px-4 py-2 rounded-xl shadow-lg max-w-[90vw] text-center"></div>
+<!-- Lightbox -->
+<div id="lightbox" class="modal-hidden fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-3" data-action="closeZoom">
+    <button class="absolute top-4 left-4 text-white text-3xl" data-action="closeZoom"><i class="fa-solid fa-xmark"></i></button>
+    <img id="lightboxImg" alt="" class="max-w-full max-h-full rounded-lg">
+</div>
+
+<div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[80] bg-gray-900 text-white text-sm px-4 py-2 rounded-xl shadow-lg max-w-[90vw] text-center"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail }
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, orderBy, query, serverTimestamp }
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, orderBy, query, serverTimestamp, increment, writeBatch, Timestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* ============================================================
-   1) ضع بيانات مشروعك هنا (من Firebase Console > Project settings)
+   إعدادات Firebase
    ============================================================ */
 const firebaseConfig = {
     apiKey: "AIzaSyCVKH5QK0ZeTLMpvzHsaLhCuCGh0x3WzsI",
@@ -107,14 +128,21 @@ const firebaseConfig = {
     appId: "1:372720770718:web:2f5a462bf013de8066258f"
 };
 
-const CATEGORIES = ['ملابس', 'مطاعم', 'صيدليات', 'سوبر ماركت', 'خدمات وصيانة'];
-const configured = !firebaseConfig.apiKey.startsWith('PUT_');
+const CATEGORIES = ['ملابس وأحذية', 'مطاعم', 'صيدليات', 'سوبر ماركت', 'خدمات وصيانة'];
+const CAT_ICON = { 'ملابس وأحذية': '👕', 'مطاعم': '🍔', 'صيدليات': '💊', 'سوبر ماركت': '🛒', 'خدمات وصيانة': '🔧' };
+const ICONS = ['🏪', '🛍️', '👕', '👟', '🍔', '🍕', '☕', '🍞', '🥩', '🥦', '💊', '🛒', '🔧', '⚡', '🚗', '📱', '✂️', '🪑', '🏠', '📚'];
+const JOBS = ['سباك', 'كهربائي', 'نجار', 'حداد', 'نقاش', 'ميكانيكي', 'سواق', 'فني تكييف', 'فني غسالات', 'فني موبايلات', 'بناء', 'مبلّط', 'طبيب', 'ممرض', 'مدرس', 'بيطري', 'مزارع', 'توصيل'];
+const MAX_PRODUCTS = 30;
+const DEFAULT_SUPPORT = ['01118465764'];
+const EMAIL_DOMAIN = '@sawaqi-users.com';
 
+const configured = !firebaseConfig.apiKey.startsWith('PUT_');
 let auth, db;
 if (configured) {
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    setPersistence(auth, browserLocalPersistence).catch(() => {});
 } else {
     document.getElementById('configBanner').classList.remove('hidden');
 }
@@ -122,6 +150,7 @@ if (configured) {
 /* ================= Helpers ================= */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeImg = s => typeof s === 'string' && s.startsWith('data:image/');
 
 function toast(msg) {
     const t = $('#toast');
@@ -131,50 +160,46 @@ function toast(msg) {
     toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
 }
 
-// رقم مصري -> صيغة دولية صحيحة للواتساب (01012345678 -> 201012345678)
-function waNumber(phone) {
-    let d = String(phone).replace(/\D/g, '');
-    if (d.startsWith('00')) d = d.slice(2);
-    if (d.startsWith('0')) d = '20' + d.slice(1);
+// أي صيغة لرقم مصري -> 01XXXXXXXXX
+function normPhone(p) {
+    let d = String(p || '').replace(/\D/g, '');
+    if (d.startsWith('0020')) d = d.slice(4);
+    else if (d.startsWith('20') && d.length === 12) d = d.slice(2);
+    if (d.length === 10 && d.startsWith('1')) d = '0' + d;
     return d;
 }
-function waLink(shop, text) {
-    return `https://wa.me/${waNumber(shop.phone)}?text=${encodeURIComponent(text)}`;
-}
-const validEgyptPhone = p => /^01[0125]\d{8}$/.test(String(p).replace(/\D/g, ''));
-const safeImg = src => typeof src === 'string' && src.startsWith('data:image/');
+const validPhone = p => /^01[0125]\d{8}$/.test(p);
+const intl = local => '2' + local;                 // 01012345678 -> 201012345678
+const phoneEmail = local => intl(local) + EMAIL_DOMAIN;
+const waLink = (local, text) => `https://wa.me/${intl(local)}${text ? '?text=' + encodeURIComponent(text) : ''}`;
 
-function authError(e) {
-    const m = {
-        'auth/email-already-in-use': 'البريد ده مسجل قبل كده، جرب تدخل.',
-        'auth/invalid-email': 'البريد الإلكتروني غير صحيح.',
-        'auth/weak-password': 'كلمة المرور ضعيفة (6 على الأقل).',
-        'auth/invalid-credential': 'البريد أو كلمة المرور غلط.',
-        'auth/user-not-found': 'البريد أو كلمة المرور غلط.',
-        'auth/wrong-password': 'البريد أو كلمة المرور غلط.',
-        'auth/too-many-requests': 'محاولات كتير، استنى شوية وجرب تاني.',
-        'auth/network-request-failed': 'مفيش اتصال بالإنترنت.',
-        'permission-denied': 'مفيش صلاحية للعملية دي.'
-    };
-    return m[e.code] || ('حصل خطأ: ' + (e.code || e.message));
+async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch {}
+        ta.remove();
+    }
+    toast('تم النسخ: ' + text);
 }
 
-// ضغط الصورة قبل الحفظ (عشان تفضل صغيرة ومجانية)
-function compressImage(file, maxDim = 640) {
+// تصغير الصورة قبل الحفظ
+function compressImage(file, { max = 500, quality = 0.7, limit = 110000 } = {}) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         const url = URL.createObjectURL(file);
         img.onload = () => {
             let { width: w, height: h } = img;
-            const scale = Math.min(1, maxDim / Math.max(w, h));
+            const scale = Math.min(1, max / Math.max(w, h));
             w = Math.round(w * scale); h = Math.round(h * scale);
             const c = document.createElement('canvas');
             c.width = w; c.height = h;
             c.getContext('2d').drawImage(img, 0, 0, w, h);
             URL.revokeObjectURL(url);
-            let out = c.toDataURL('image/jpeg', 0.72);
-            if (out.length > 250000) out = c.toDataURL('image/jpeg', 0.5);
-            if (out.length > 280000) return reject(new Error('الصورة كبيرة جداً'));
+            let q = quality, out = c.toDataURL('image/jpeg', q);
+            while (out.length > limit && q > 0.3) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+            if (out.length > limit * 1.6) return reject(new Error('الصورة كبيرة جداً، جرب صورة تانية'));
             resolve(out);
         };
         img.onerror = () => reject(new Error('ملف الصورة غير صالح'));
@@ -182,78 +207,171 @@ function compressImage(file, maxDim = 640) {
     });
 }
 
+function authError(e) {
+    const m = {
+        'auth/email-already-in-use': 'الرقم ده مسجل قبل كده، جرب تدخل.',
+        'auth/invalid-email': 'رقم الموبايل غير صحيح.',
+        'auth/weak-password': 'كلمة المرور ضعيفة (6 على الأقل).',
+        'auth/invalid-credential': 'الرقم أو كلمة المرور غلط.',
+        'auth/user-not-found': 'الرقم أو كلمة المرور غلط.',
+        'auth/wrong-password': 'الرقم أو كلمة المرور غلط.',
+        'auth/too-many-requests': 'محاولات كتير، استنى شوية وجرب تاني.',
+        'auth/network-request-failed': 'مفيش اتصال بالإنترنت.',
+        'permission-denied': 'مفيش صلاحية للعملية دي.'
+    };
+    return m[e && e.code] || ('حصل خطأ: ' + ((e && (e.code || e.message)) || e));
+}
+
 /* ================= State ================= */
-let user = null;
-let isAdmin = false;
-let shops = [];
-let currentFilter = 'all';
-let searchText = '';
-let productsUnsub = null;
-let products = [];
-let adminOpenShop = null;
+let user = null, myId = null, isAdmin = false, authReady = false;
+let shops = [], shopsLoaded = false;
+let support = DEFAULT_SUPPORT.slice();
+let products = [], productsShopId = null, productsUnsub = null;
+let directory = [], dirUnsub = null, dirLoaded = false;
+let builtKey = null;
+let currentFilter = 'all', searchText = '', sortBy = 'new', dirSearch = '';
+let dash = { logo: undefined, icon: '' };
+let adminSig = '';
+
+const view = () => $('#view');
+const shopById = id => shops.find(s => s.id === id);
 
 /* ================= Data listeners ================= */
 if (configured) {
     onSnapshot(query(collection(db, 'shops'), orderBy('createdAt', 'desc')), snap => {
         shops = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        shopsLoaded = true;
         render();
     }, err => toast(authError(err)));
 
+    onSnapshot(doc(db, 'settings', 'main'), snap => {
+        const arr = snap.exists() ? snap.data().supportPhones : null;
+        support = Array.isArray(arr) && arr.length ? arr : DEFAULT_SUPPORT.slice();
+        renderFooter();
+        const f = $('#forgotBox'); if (f && !f.classList.contains('hidden')) fillForgot();
+    }, () => {});
+
     onAuthStateChanged(auth, async u => {
         user = u;
+        myId = (u && u.email && u.email.endsWith(EMAIL_DOMAIN)) ? u.email.split('@')[0] : null;
         isAdmin = false;
         if (u) {
             try { isAdmin = (await getDoc(doc(db, 'admins', u.uid))).exists(); } catch { isAdmin = false; }
         }
+        authReady = true;
+        builtKey = null;
         render();
     });
+} else {
+    authReady = true; shopsLoaded = true;
 }
 
-function watchProducts(shopId) {
-    if (productsUnsub) productsUnsub();
-    products = [];
-    if (!configured) return;
+function ensureProducts(shopId) {
+    if (productsShopId === shopId) return;
+    if (productsUnsub) { productsUnsub(); productsUnsub = null; }
+    products = []; productsShopId = shopId;
+    if (!shopId || !configured) return;
     productsUnsub = onSnapshot(
         query(collection(db, 'shops', shopId, 'products'), orderBy('createdAt', 'desc')),
         snap => {
+            if (productsShopId !== shopId) return;
             products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const route = location.hash;
-            if (route.startsWith('#shop/') || route === '#dashboard') renderProductsArea();
-        }
+            renderProductsArea();
+            updateDashboardMeta();
+        },
+        err => toast(authError(err))
     );
 }
 
-/* ================= Router / Render ================= */
+function ensureDirectory(on) {
+    if (!on) { if (dirUnsub) { dirUnsub(); dirUnsub = null; dirLoaded = false; } return; }
+    if (dirUnsub || !configured) return;
+    dirUnsub = onSnapshot(query(collection(db, 'directory'), orderBy('createdAt', 'desc')), snap => {
+        directory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        dirLoaded = true;
+        renderDirectory();
+    }, err => toast(authError(err)));
+}
+
+/* ================= Router ================= */
 window.addEventListener('hashchange', render);
+
+function parseRoute() {
+    const h = (location.hash || '#').replace(/^#/, '');
+    const [name, arg] = h.split('/');
+    return { name: name || 'home', arg: arg ? decodeURIComponent(arg) : null };
+}
 
 function render() {
     renderHeader();
-    const route = location.hash || '#';
-    if (route.startsWith('#shop/')) return renderShop(route.slice(6));
-    if (route === '#dashboard') return renderDashboard();
-    if (route === '#admin') return renderAdmin();
-    renderHome();
+    const r = parseRoute();
+    const needsProducts = r.name === 'shop' ? r.arg : (r.name === 'dashboard' ? (r.arg || myId) : null);
+    ensureProducts(needsProducts);
+    ensureDirectory(r.name === 'directory');
+
+    const key = r.name + '/' + (r.arg || '');
+    if (key !== builtKey) {
+        builtKey = key;
+        if (!buildView(r)) builtKey = null;
+    }
+    updateView(r);
 }
 
+function buildView(r) {
+    if (r.name === 'shop' && r.arg) return buildShop(r.arg);
+    if (r.name === 'dashboard') return buildDashboard(r.arg || myId);
+    if (r.name === 'admin') return buildAdmin();
+    if (r.name === 'directory') return buildDirectory();
+    return buildHome();
+}
+
+function updateView(r) {
+    if (builtKey === null) return;
+    if (r.name === 'shop' && r.arg) { fillShopHead(r.arg); renderProductsArea(); }
+    else if (r.name === 'dashboard') { updateDashboardMeta(); renderProductsArea(); }
+    else if (r.name === 'admin') { renderAdminList(); }
+    else if (r.name === 'directory') { renderDirectory(); }
+    else { renderCats(); renderGrid(); }
+}
+
+/* ================= Header / Footer ================= */
 function renderHeader() {
     const box = $('#authButtons');
     const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold transition';
+    const r = parseRoute();
     if (!user) {
         box.innerHTML = `
             <button data-action="openRegister" class="${btn} bg-amber-400 text-emerald-950 font-bold shadow hover:bg-amber-300"><i class="fa-solid fa-plus ml-1"></i> سجل محلك</button>
             <button data-action="openLogin" class="${btn} bg-white/10 hover:bg-white/20">دخول</button>`;
     } else {
         box.innerHTML = `
-            ${isAdmin ? `<a href="#admin" class="${btn} bg-amber-400 text-emerald-950 font-bold">لوحة المدير</a>` : ''}
-            ${shops.some(s => s.id === user.uid) ? `<a href="#dashboard" class="${btn} bg-white/10 hover:bg-white/20">محلي</a>` : ''}
+            ${isAdmin ? `<a href="#admin" class="${btn} bg-amber-400 text-emerald-950 font-bold">المدير</a>` : ''}
+            <a href="#dashboard" class="${btn} bg-white/10 hover:bg-white/20">محلي</a>
             <button data-action="logout" class="${btn} bg-white/10 hover:bg-white/20">خروج</button>`;
     }
+    const on = 'bg-white text-emerald-800 rounded-t-lg', off = 'text-emerald-50 hover:bg-white/10 rounded-t-lg';
+    $('#navDir').className = 'px-4 py-2 ' + (r.name === 'directory' ? on : off);
+    $('#navHome').className = 'px-4 py-2 ' + (r.name !== 'directory' ? on : off);
 }
 
-/* ---------- Home ---------- */
-function renderHome() {
-    if (productsUnsub) { productsUnsub(); productsUnsub = null; }
-    $('#view').innerHTML = `
+function renderFooter() {
+    $('#supportBox').innerHTML = `مشكلة في الموقع أو نسيت كلمة المرور؟ كلمنا: ` +
+        support.map(p => `<a href="${waLink(p, 'مرحباً، عندي مشكلة في موقع خدمات السواقي')}" target="_blank" rel="noopener" class="text-emerald-700 font-bold underline mx-1" dir="ltr">${esc(p)}</a>`).join('');
+}
+
+function avatar(s, size) {
+    const base = `${size} rounded-2xl shrink-0 flex items-center justify-center overflow-hidden bg-emerald-50`;
+    if (safeImg(s.logo)) return `<div class="${base}"><img src="${s.logo}" alt="" class="w-full h-full object-cover"></div>`;
+    return `<div class="${base} text-2xl">${esc(s.icon || CAT_ICON[s.category] || '🏪')}</div>`;
+}
+
+const openBadge = s => (s.open === false)
+    ? `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold">مغلق الآن</span>`
+    : `<span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">مفتوح</span>`;
+
+/* ================= Home ================= */
+function buildHome() {
+    view().innerHTML = `
         <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-6 rounded-2xl shadow-lg mb-6 text-center">
             <h2 class="text-2xl md:text-3xl font-black mb-2">دليل محلات وخدمات القرية</h2>
             <p class="text-emerald-100 text-sm mb-4">تصفح محلات السواقي، شاهد المنتجات والعروض، وتواصل مباشرة مع أصحابها</p>
@@ -266,76 +384,118 @@ function renderHome() {
             <h3 class="font-bold text-gray-700 mb-3 text-lg"><i class="fa-solid fa-list ml-2 text-emerald-600"></i>الأقسام</h3>
             <div id="cats" class="flex gap-2 overflow-x-auto pb-2"></div>
         </div>
-        <h3 class="font-bold text-gray-700 mb-3 text-lg"><i class="fa-solid fa-shop ml-2 text-emerald-600"></i>المحلات المتاحة</h3>
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-gray-700 text-lg"><i class="fa-solid fa-shop ml-2 text-emerald-600"></i>المحلات المتاحة</h3>
+            <select id="sortSel" class="text-sm border rounded-lg px-2 py-1 bg-white">
+                <option value="new">الأحدث</option>
+                <option value="visits">الأكثر زيارة</option>
+            </select>
+        </div>
         <div id="shopsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>`;
-    renderCats();
-    renderGrid();
+    $('#sortSel').value = sortBy;
+    return true;
 }
 
 function renderCats() {
+    const box = $('#cats'); if (!box) return;
     const on = 'bg-emerald-700 text-white shadow';
     const off = 'bg-white text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-50';
-    $('#cats').innerHTML = ['all', ...CATEGORIES].map(c =>
+    box.innerHTML = ['all', ...CATEGORIES].map(c =>
         `<button data-action="cat" data-cat="${esc(c)}" class="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition ${currentFilter === c ? on : off}">${c === 'all' ? 'الكل' : esc(c)}</button>`
     ).join('');
 }
 
 function renderGrid() {
-    const grid = $('#shopsGrid');
-    if (!grid) return;
+    const grid = $('#shopsGrid'); if (!grid) return;
+    if (!shopsLoaded) { grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">جاري التحميل...</div>`; return; }
     const q = searchText.trim().toLowerCase();
-    const list = shops.filter(s =>
+    let list = shops.filter(s =>
         (currentFilter === 'all' || s.category === currentFilter) &&
-        (!q || (s.name || '').toLowerCase().includes(q))
+        (!q || (s.name || '').toLowerCase().includes(q) || (s.about || '').toLowerCase().includes(q))
     );
+    if (sortBy === 'visits') list = list.slice().sort((a, b) => (b.visits || 0) - (a.visits || 0));
     if (!list.length) {
-        grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">لا توجد محلات مسجلة في هذا القسم حالياً</div>`;
+        grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">لا توجد محلات في هذا القسم حالياً</div>`;
         return;
     }
     grid.innerHTML = list.map(s => `
-        <a href="#shop/${esc(s.id)}" class="block bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition transform hover:-translate-y-1">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold">${esc(s.category)}</span>
-                <i class="fa-solid fa-chevron-left text-gray-300"></i>
+        <a href="#shop/${esc(s.id)}" class="block bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition">
+            <div class="flex items-center gap-3">
+                ${avatar(s, 'w-14 h-14')}
+                <div class="min-w-0 flex-1">
+                    <h4 class="font-bold text-gray-800 truncate">${esc(s.name)}</h4>
+                    <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">${esc(s.category)}</span>
+                </div>
             </div>
-            <h4 class="font-bold text-lg text-gray-800 mb-3">${esc(s.name)}</h4>
-            <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-semibold text-xs"><i class="fa-brands fa-whatsapp ml-1"></i> تواصل مباشر</span>
+            <div class="flex items-center justify-between mt-3 text-xs">
+                ${openBadge(s)}
+                <span class="text-gray-500"><i class="fa-regular fa-eye ml-1"></i><span data-visits="${esc(s.id)}">${s.visits || 0}</span></span>
+            </div>
         </a>`).join('');
 }
 
-/* ---------- Shop detail (visitor) ---------- */
-function renderShop(id) {
-    const shop = shops.find(s => s.id === id);
+/* ================= Shop (visitor) ================= */
+function buildShop(id) {
+    if (!shopsLoaded) { view().innerHTML = `<p class="text-center text-gray-400 py-10">جاري التحميل...</p>`; return false; }
+    const shop = shopById(id);
     if (!shop) {
-        $('#view').innerHTML = `<a href="#" class="text-emerald-700 font-bold"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</a>
-            <p class="text-center text-gray-400 py-10">${shops.length ? 'المحل غير موجود.' : 'جاري التحميل...'}</p>`;
-        return;
+        view().innerHTML = `<a href="#" class="text-emerald-700 font-bold"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</a>
+            <p class="text-center text-gray-400 py-10">المحل غير موجود.</p>`;
+        return true;
     }
-    if (!productsUnsub || renderShop.current !== id) { renderShop.current = id; watchProducts(id); }
-    $('#view').innerHTML = `
+    view().innerHTML = `
         <a href="#" class="mb-4 text-emerald-700 font-bold inline-flex items-center gap-1 hover:underline"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</a>
-        <div class="bg-white rounded-2xl shadow p-6">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 mb-6 gap-4">
-                <div>
-                    <span class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold">${esc(shop.category)}</span>
-                    <h2 class="text-2xl font-black text-gray-800 mt-2">${esc(shop.name)}</h2>
-                </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <a href="${waLink(shop, `مرحباً ${shop.name}، أود الاستفسار عن منتجاتكم في خدمات السواقي.`)}" target="_blank" rel="noopener" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-center text-sm shadow"><i class="fa-brands fa-whatsapp ml-1 text-lg"></i> مراسلة واتساب</a>
-                    <a href="tel:${esc(String(shop.phone).replace(/[^\d+]/g, ''))}" class="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold text-center text-sm shadow"><i class="fa-solid fa-phone ml-1"></i> اتصال هاتفي</a>
-                </div>
-            </div>
-            <h3 class="font-bold text-lg text-gray-700 mb-4"><i class="fa-solid fa-bag-shopping ml-2 text-emerald-600"></i>منتجات وعروض المحل</h3>
-            <div id="productsArea" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-        </div>`;
-    renderProductsArea();
+        <div id="shopHead"></div>
+        <h3 class="font-bold text-lg text-gray-700 mb-4"><i class="fa-solid fa-bag-shopping ml-2 text-emerald-600"></i>منتجات وعروض المحل</h3>
+        <div id="productsArea" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>`;
+    countVisit(id);
+    return true;
 }
 
-function productCard(p, shop, mode) {
-    const img = safeImg(p.image) ? `<img src="${p.image}" alt="" class="w-full h-44 object-cover">` : '';
+function fillShopHead(id) {
+    const box = $('#shopHead'); if (!box) return;
+    const s = shopById(id); if (!s) return;
+    box.innerHTML = `
+        <div class="bg-white rounded-2xl shadow p-5 mb-5">
+            <div class="flex items-start gap-4">
+                ${avatar(s, 'w-20 h-20 !text-4xl')}
+                <div class="flex-1 min-w-0">
+                    <h2 class="text-2xl font-black text-gray-800">${esc(s.name)}</h2>
+                    <div class="flex flex-wrap items-center gap-2 mt-2 text-xs">
+                        <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">${esc(s.category)}</span>
+                        ${openBadge(s)}
+                        <span class="text-gray-500"><i class="fa-regular fa-eye ml-1"></i>${s.visits || 0} زائر</span>
+                    </div>
+                </div>
+            </div>
+            ${s.about ? `<p class="text-sm text-gray-600 mt-4 whitespace-pre-line">${esc(s.about)}</p>` : ''}
+            <div class="mt-3 text-xs text-gray-500 space-y-1">
+                ${s.hours ? `<div><i class="fa-regular fa-clock ml-1"></i>${esc(s.hours)}</div>` : ''}
+                ${s.address ? `<div><i class="fa-solid fa-location-dot ml-1"></i>${esc(s.address)}</div>` : ''}
+            </div>
+            <div class="flex gap-2 mt-4">
+                <a href="${waLink(s.phone, `مرحباً ${s.name}، أود الاستفسار عن منتجاتكم في خدمات السواقي.`)}" target="_blank" rel="noopener" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-center text-sm shadow"><i class="fa-brands fa-whatsapp ml-1 text-lg"></i> مراسلة واتساب</a>
+                <a href="tel:${esc(s.phone)}" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold text-center text-sm shadow"><i class="fa-solid fa-phone ml-1"></i> اتصال هاتفي</a>
+            </div>
+        </div>`;
+}
+
+// زائر واحد لكل جهاز في اليوم
+function countVisit(shopId) {
+    if (!configured || shopId === myId) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const key = 'sv_' + shopId;
+    try { if (localStorage.getItem(key) === today) return; } catch {}
+    updateDoc(doc(db, 'shops', shopId), { visits: increment(1) })
+        .then(() => { try { localStorage.setItem(key, today); } catch {} })
+        .catch(() => {});
+}
+
+function productCard(p, i, mode, shop) {
+    const img = safeImg(p.image) ? `<img src="${p.image}" alt="" loading="lazy" data-action="zoom" data-i="${i}" class="w-full h-44 object-cover cursor-zoom">` : '';
     const action = mode === 'vendor'
         ? `<button data-action="delProduct" data-id="${esc(p.id)}" class="block w-full bg-red-50 text-red-600 hover:bg-red-100 py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-trash ml-1"></i> حذف المنتج</button>`
-        : `<a href="${waLink(shop, 'أريد طلب هذا المنتج: ' + p.name)}" target="_blank" rel="noopener" class="block bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl text-xs font-bold shadow transition"><i class="fa-brands fa-whatsapp ml-1"></i> اطلب عبر الواتساب</a>`;
+        : `<a href="${waLink(shop.phone, 'أريد طلب هذا المنتج: ' + p.name)}" target="_blank" rel="noopener" class="block bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl text-xs font-bold shadow transition"><i class="fa-brands fa-whatsapp ml-1"></i> اطلب عبر الواتساب</a>`;
     return `
         <div class="border rounded-2xl overflow-hidden bg-white shadow-sm flex flex-col justify-between">
             ${img}
@@ -349,47 +509,88 @@ function productCard(p, shop, mode) {
 }
 
 function renderProductsArea() {
-    const area = $('#productsArea');
-    if (!area) return;
-    const route = location.hash;
-    const isDash = route === '#dashboard';
-    const shopId = isDash ? (user && user.uid) : route.slice(6);
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
+    const area = $('#productsArea'); if (!area) return;
+    const r = parseRoute();
+    const id = r.name === 'dashboard' ? (r.arg || myId) : r.arg;
+    const shop = shopById(id); if (!shop) return;
+    const mode = r.name === 'dashboard' ? 'vendor' : 'visitor';
     area.innerHTML = products.length
-        ? products.map(p => productCard(p, shop, isDash ? 'vendor' : 'visitor')).join('')
-        : `<p class="text-gray-400 col-span-full">${isDash ? 'لم تقم بإضافة أي منتجات بعد.' : 'لا توجد منتجات معروضة حالياً لهذا المحل.'}</p>`;
+        ? products.map((p, i) => productCard(p, i, mode, shop)).join('')
+        : `<p class="text-gray-400 col-span-full">${mode === 'vendor' ? 'لم تقم بإضافة أي منتجات بعد.' : 'لا توجد منتجات معروضة حالياً لهذا المحل.'}</p>`;
 }
 
-/* ---------- Vendor dashboard ---------- */
-function renderDashboard() {
-    if (!user) { $('#view').innerHTML = `<p class="text-center text-gray-500 py-10">سجل دخولك الأول.</p>`; return; }
-    const shop = shops.find(s => s.id === user.uid);
-    if (!shop) {
-        $('#view').innerHTML = `<p class="text-center text-gray-500 py-10">${shops.length ? 'مفيش محل مرتبط بالحساب ده.' : 'جاري التحميل...'}</p>`;
-        return;
+/* ================= Dashboard (owner / admin) ================= */
+function buildDashboard(id) {
+    if (!authReady || !shopsLoaded) { view().innerHTML = `<p class="text-center text-gray-400 py-10">جاري التحميل...</p>`; return false; }
+    if (!user) {
+        view().innerHTML = `<div class="text-center py-10"><p class="text-gray-500 mb-4">سجل دخولك الأول.</p><button data-action="openLogin" class="bg-emerald-600 text-white font-bold px-6 py-2 rounded-xl">دخول</button></div>`;
+        return true;
     }
-    if (!productsUnsub || renderDashboard.current !== user.uid) { renderDashboard.current = user.uid; watchProducts(user.uid); }
-    $('#view').innerHTML = `
-        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow">
-            <div>
-                <h3 class="text-xl font-bold text-gray-800">${esc(shop.name)}</h3>
-                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md font-semibold">لوحة تحكم صاحب المحل</span>
+    const shop = id && shopById(id);
+    if (!(isAdmin || id === myId)) {
+        view().innerHTML = `<p class="text-center text-gray-500 py-10">مفيش محل مرتبط بالحساب ده.</p>`;
+        return true;
+    }
+    if (!shop) {
+        view().innerHTML = `<div class="text-center py-10 text-gray-500">مفيش محل مرتبط برقمك.${isAdmin ? ' <a href="#admin" class="text-emerald-700 font-bold underline">لوحة المدير</a>' : ''}</div>`;
+        return true;
+    }
+    dash = { logo: undefined, icon: shop.icon || '' };
+    view().innerHTML = `
+        <div class="flex justify-between items-center mb-5 bg-white p-4 rounded-xl shadow gap-2">
+            <div class="min-w-0">
+                <h3 class="text-xl font-bold text-gray-800 truncate">${esc(shop.name)}</h3>
+                <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md font-semibold">${id === myId ? 'لوحة تحكم صاحب المحل' : 'إدارة المحل (صلاحية المدير)'}</span>
             </div>
-            <a href="#shop/${esc(shop.id)}" class="text-emerald-700 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100">شوف محلي</a>
+            <a href="#shop/${esc(id)}" class="shrink-0 text-emerald-700 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100">شوف المحل</a>
         </div>
 
-        <div class="bg-white rounded-2xl shadow p-6 mb-6">
+        <div class="bg-white rounded-2xl shadow p-5 mb-5">
             <h4 class="font-bold text-lg mb-4 text-gray-700">بيانات المحل</h4>
-            <form id="shopForm" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input type="text" id="eName" value="${esc(shop.name)}" required maxlength="60" class="p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                <input type="tel" id="ePhone" value="${esc(shop.phone)}" required dir="ltr" class="p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                <button type="submit" class="sm:col-span-2 bg-emerald-600 text-white font-bold py-2.5 rounded-xl hover:bg-emerald-700">حفظ التعديل</button>
+            <form id="shopForm" class="space-y-4">
+                <div class="flex items-center gap-4">
+                    <div id="logoPreview">${avatar(shop, 'w-20 h-20 !text-4xl')}</div>
+                    <div class="flex-1">
+                        <label class="block text-sm text-gray-600 mb-1">لوجو المحل (صورة)</label>
+                        <input type="file" id="eLogo" accept="image/*" class="w-full text-xs">
+                        <button type="button" data-action="rmLogo" class="text-xs text-red-500 mt-1">إزالة اللوجو</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">أو اختار أيقونة</label>
+                    <div id="iconPicker" class="flex flex-wrap gap-2"></div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">اسم المحل</label>
+                    <input type="text" id="eName" value="${esc(shop.name)}" required maxlength="60" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">القسم</label>
+                    <select id="eCategory" class="w-full p-3 border rounded-xl">${CATEGORIES.map(c => `<option value="${esc(c)}" ${c === shop.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">نبذة عن المحل</label>
+                    <textarea id="eAbout" rows="3" maxlength="300" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">${esc(shop.about || '')}</textarea>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">مواعيد العمل</label>
+                        <input type="text" id="eHours" value="${esc(shop.hours || '')}" maxlength="80" placeholder="مثال: يوميا من 9 ص إلى 11 م" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">العنوان</label>
+                        <input type="text" id="eAddress" value="${esc(shop.address || '')}" maxlength="120" placeholder="مثال: بجوار الجامع الكبير" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" id="eOpen" ${shop.open === false ? '' : 'checked'} class="w-4 h-4"> المحل مفتوح الآن</label>
+                <p class="text-xs text-gray-500">رقم الواتساب: <span dir="ltr">${esc(shop.phone)}</span> (هو رقم الدخول، لتغييره كلم الدعم)</p>
+                <button type="submit" id="shopSave" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">حفظ بيانات المحل</button>
             </form>
         </div>
 
-        <div class="bg-white rounded-2xl shadow p-6 mb-6">
-            <h4 class="font-bold text-lg mb-4 text-gray-700">إضافة منتج أو عرض جديد</h4>
+        <div class="bg-white rounded-2xl shadow p-5 mb-5">
+            <h4 class="font-bold text-lg mb-1 text-gray-700">إضافة منتج أو عرض جديد</h4>
+            <p class="text-xs text-gray-500 mb-4">الحد الأقصى ${MAX_PRODUCTS} منتج، لو وصلت للحد احذف منتج قديم عشان تضيف جديد. <b id="pCount"></b></p>
             <form id="productForm" class="space-y-4">
                 <div>
                     <label class="block text-sm text-gray-600 mb-1">اسم المنتج / الخدمة</label>
@@ -408,59 +609,207 @@ function renderDashboard() {
                     <label class="block text-sm text-gray-600 mb-1">تفاصيل أو وصف المنتج</label>
                     <textarea id="pDesc" rows="2" maxlength="500" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
                 </div>
-                <button type="submit" id="pSubmit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">إضافة المنتج لمحلي</button>
+                <button type="submit" id="pSubmit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">إضافة المنتج</button>
             </form>
         </div>
 
-        <h4 class="font-bold text-lg mb-3 text-gray-700">منتجات محلك</h4>
+        <h4 class="font-bold text-lg mb-3 text-gray-700">منتجات المحل</h4>
         <div id="productsArea" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>`;
-    renderProductsArea();
+    renderIconPicker();
+    return true;
 }
 
-/* ---------- Admin ---------- */
-function renderAdmin() {
-    if (!isAdmin) {
-        $('#view').innerHTML = `<p class="text-center text-gray-500 py-10">${user ? 'الصفحة دي للمدير فقط.' : 'سجل دخولك كمدير.'}</p>`;
-        return;
-    }
-    $('#view').innerHTML = `
-        <div class="mb-6 bg-amber-50 p-4 rounded-xl border border-amber-200">
-            <h3 class="text-xl font-bold text-amber-900">لوحة تحكم المدير</h3>
-            <p class="text-xs text-amber-700">تقدر تحذف أي محل أو منتج مخالف. عدد المحلات: ${shops.length}</p>
+function renderIconPicker() {
+    const box = $('#iconPicker'); if (!box) return;
+    box.innerHTML = ICONS.map(ic =>
+        `<button type="button" data-action="pickIcon" data-icon="${ic}" class="w-10 h-10 rounded-xl text-xl border ${dash.icon === ic ? 'border-emerald-600 bg-emerald-50' : 'border-gray-200 bg-white'}">${ic}</button>`).join('');
+}
+
+function updateDashboardMeta() {
+    const c = $('#pCount');
+    if (c) c.textContent = `(${products.length} / ${MAX_PRODUCTS})`;
+}
+
+function dashShopId() { const r = parseRoute(); return r.arg || myId; }
+
+/* ================= Directory ================= */
+function buildDirectory() {
+    view().innerHTML = `
+        <div class="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 rounded-2xl shadow-lg mb-6 text-center">
+            <h2 class="text-2xl font-black mb-1">دليل أرقام السواقي</h2>
+            <p class="text-amber-50 text-sm">سواقين وفنيين وصنايعية وكل اللي محتاجه، رقمه بضغطة</p>
         </div>
-        <div class="space-y-4">
-            ${shops.map(s => `
-                <div class="bg-white rounded-2xl shadow p-4">
-                    <div class="flex justify-between items-center gap-2 flex-wrap">
-                        <div>
-                            <b class="text-gray-800">${esc(s.name)}</b>
-                            <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full mr-2">${esc(s.category)}</span>
-                            <div class="text-xs text-gray-500 mt-1" dir="ltr">${esc(s.phone)}</div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button data-action="adminProducts" data-id="${esc(s.id)}" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg font-semibold">المنتجات</button>
-                            <button data-action="adminDelShop" data-id="${esc(s.id)}" class="text-sm bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-semibold">حذف المحل</button>
-                        </div>
-                    </div>
-                    <div id="ap-${esc(s.id)}" class="mt-3 space-y-2"></div>
-                </div>`).join('') || '<p class="text-gray-400">لا توجد محلات.</p>'}
-        </div>`;
+
+        <div class="bg-white rounded-2xl shadow p-5 mb-6">
+            <h3 class="font-bold text-gray-700 mb-3"><i class="fa-solid fa-user-plus ml-2 text-amber-600"></i>ضيف نفسك في الدليل</h3>
+            <form id="dirForm" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input type="text" id="dName" placeholder="الاسم" required maxlength="40" class="p-3 border rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <input type="text" id="dJob" list="jobsList" placeholder="الوظيفة (سباك، سواق...)" required maxlength="40" class="p-3 border rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <input type="tel" id="dPhone" placeholder="رقم الموبايل" required dir="ltr" class="p-3 border rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <datalist id="jobsList">${JOBS.map(j => `<option value="${esc(j)}">`).join('')}</datalist>
+                <button type="submit" class="sm:col-span-3 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl shadow">إضافة للدليل</button>
+            </form>
+        </div>
+
+        <div class="relative mb-4">
+            <input type="text" id="dirSearch" value="${esc(dirSearch)}" placeholder="ابحث بالاسم أو الوظيفة..." class="w-full py-3 px-4 pr-10 rounded-xl border focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <i class="fa-solid fa-magnifying-glass absolute top-4 right-4 text-gray-400"></i>
+        </div>
+        <div id="dirList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>`;
+    return true;
 }
 
-async function loadAdminProducts(shopId) {
-    const box = document.getElementById('ap-' + shopId);
-    if (!box) return;
-    if (box.dataset.open === '1') { box.innerHTML = ''; box.dataset.open = ''; return; }
-    const snap = await getDocs(collection(db, 'shops', shopId, 'products'));
-    box.dataset.open = '1';
-    box.innerHTML = snap.empty ? '<p class="text-xs text-gray-400">لا توجد منتجات.</p>' :
-        snap.docs.map(d => {
-            const p = d.data();
-            return `<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2 text-sm">
-                <span>${esc(p.name)} ${p.price ? '— ' + esc(p.price) : ''}</span>
-                <button data-action="adminDelProduct" data-shop="${esc(shopId)}" data-id="${esc(d.id)}" class="text-red-600 text-xs font-bold">حذف</button>
-            </div>`;
-        }).join('');
+function renderDirectory() {
+    const box = $('#dirList'); if (!box) return;
+    if (!dirLoaded) { box.innerHTML = `<p class="text-gray-400 col-span-full text-center py-6">جاري التحميل...</p>`; return; }
+    const q = dirSearch.trim().toLowerCase();
+    const list = directory.filter(e => !q || (e.name || '').toLowerCase().includes(q) || (e.job || '').toLowerCase().includes(q) || (e.phone || '').includes(q));
+    if (!list.length) { box.innerHTML = `<p class="text-gray-400 col-span-full text-center py-6">لا يوجد أحد في الدليل بعد.</p>`; return; }
+    box.innerHTML = list.map(e => `
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div class="flex justify-between items-start gap-2">
+                <div class="min-w-0">
+                    <h4 class="font-bold text-gray-800 truncate">${esc(e.name)}</h4>
+                    <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">${esc(e.job)}</span>
+                </div>
+                ${isAdmin ? `<button data-action="delDir" data-id="${esc(e.id)}" class="text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
+            </div>
+            <div class="flex items-center justify-between mt-3">
+                <span class="text-sm text-gray-700" dir="ltr">${esc(e.phone)}</span>
+                <div class="flex gap-2">
+                    <button data-action="copy" data-text="${esc(e.phone)}" class="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600" title="نسخ"><i class="fa-regular fa-copy"></i></button>
+                    <a href="tel:${esc(e.phone)}" class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center" title="اتصال"><i class="fa-solid fa-phone"></i></a>
+                    <a href="${waLink(e.phone)}" target="_blank" rel="noopener" class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+                </div>
+            </div>
+        </div>`).join('');
+}
+
+/* ================= Admin ================= */
+function buildAdmin() {
+    if (!authReady) { view().innerHTML = `<p class="text-center text-gray-400 py-10">جاري التحميل...</p>`; return false; }
+    if (!isAdmin) {
+        view().innerHTML = `<p class="text-center text-gray-500 py-10">${user ? 'الصفحة دي للمدير فقط.' : 'سجل دخولك كمدير.'}</p>`;
+        return true;
+    }
+    adminSig = '';
+    view().innerHTML = `
+        <div class="mb-5 bg-amber-50 p-4 rounded-xl border border-amber-200">
+            <h3 class="text-xl font-bold text-amber-900">لوحة تحكم المدير</h3>
+            <p class="text-xs text-amber-700" id="adminStats"></p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-5 mb-5">
+            <h4 class="font-bold text-gray-700 mb-2">أرقام الدعم (تظهر أسفل الموقع)</h4>
+            <p class="text-xs text-gray-500 mb-2">رقم في كل سطر، بحد أقصى 5 أرقام.</p>
+            <textarea id="sPhones" rows="3" dir="ltr" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none">${esc(support.join('\n'))}</textarea>
+            <button data-action="saveSupport" class="mt-2 bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2 rounded-xl">حفظ الأرقام</button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-5 mb-5">
+            <h4 class="font-bold text-gray-700 mb-2">النسخة الاحتياطية</h4>
+            <p class="text-xs text-gray-500 mb-3">التحميل بيحفظ كل المحلات والمنتجات والصور ودليل الأرقام في ملف. احفظه كل أسبوع. الاستعادة بترجّع الملف كله (بتكتب فوق الموجود ومش بتمسح حاجة زيادة). حسابات الدخول نفسها بتفضل في Firebase.</p>
+            <div class="flex flex-wrap gap-2">
+                <button data-action="backup" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl"><i class="fa-solid fa-download ml-1"></i> تحميل نسخة احتياطية</button>
+                <label class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-5 py-2 rounded-xl cursor-pointer"><i class="fa-solid fa-upload ml-1"></i> رفع ملف واستعادة
+                    <input type="file" id="restoreFile" accept=".json,application/json" class="hidden">
+                </label>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-5 mb-5">
+            <h4 class="font-bold text-gray-700 mb-3">إضافة محل جديد</h4>
+            <form id="adminShopForm" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input type="text" id="aName" placeholder="اسم المحل" required maxlength="60" class="p-3 border rounded-xl">
+                <select id="aCat" class="p-3 border rounded-xl">${CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>
+                <input type="tel" id="aPhone" placeholder="رقم الواتساب" required dir="ltr" class="p-3 border rounded-xl">
+                <button type="submit" class="sm:col-span-3 bg-emerald-600 text-white font-bold py-2.5 rounded-xl">إضافة المحل</button>
+            </form>
+            <p class="text-xs text-gray-500 mt-2">صاحب الرقم لما يسجل بنفس الرقم يمتلك المحل تلقائياً.</p>
+        </div>
+
+        <h4 class="font-bold text-gray-700 mb-3">كل المحلات</h4>
+        <div id="adminList" class="space-y-3"></div>`;
+    return true;
+}
+
+function renderAdminList() {
+    const list = $('#adminList'); if (!list) return;
+    const sig = shops.map(s => s.id + '|' + s.name + '|' + s.category + '|' + (s.productCount || 0)).join(';');
+    if (sig === adminSig) {
+        shops.forEach(s => { const el = document.querySelector(`[data-visits="${s.id}"]`); if (el) el.textContent = s.visits || 0; });
+    } else {
+        adminSig = sig;
+        list.innerHTML = shops.map(s => `
+            <div class="bg-white rounded-2xl shadow p-4">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <div class="min-w-0">
+                        <b class="text-gray-800">${esc(s.name)}</b>
+                        <span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full mr-2">${esc(s.category)}</span>
+                        <div class="text-xs text-gray-500 mt-1"><span dir="ltr">${esc(s.phone)}</span> · <i class="fa-regular fa-eye"></i> <span data-visits="${esc(s.id)}">${s.visits || 0}</span> · ${s.productCount || 0} منتج</div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-sm">
+                        <button data-action="copy" data-text="${esc(s.id)}" class="bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg font-semibold" title="الرقم بالصيغة الدولية للبحث في Firebase">نسخ للبحث</button>
+                        <a href="${waLink(s.phone)}" target="_blank" rel="noopener" class="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg font-semibold">واتساب</a>
+                        <a href="#dashboard/${esc(s.id)}" class="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg font-semibold">إدارة</a>
+                        <button data-action="adminDelShop" data-id="${esc(s.id)}" class="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg font-semibold">حذف المحل</button>
+                    </div>
+                </div>
+            </div>`).join('') || '<p class="text-gray-400">لا توجد محلات.</p>';
+    }
+    const total = shops.reduce((a, s) => a + (s.visits || 0), 0);
+    const st = $('#adminStats');
+    if (st) st.textContent = `عدد المحلات: ${shops.length} · إجمالي الزيارات: ${total}`;
+}
+
+/* ---------- Backup / Restore ---------- */
+const toPlain = d => { const o = {}; for (const k in d) { const v = d[k]; o[k] = (v && typeof v.toMillis === 'function') ? { __ts: v.toMillis() } : v; } return o; };
+const fromPlain = d => { const o = {}; for (const k in d) { const v = d[k]; o[k] = (v && typeof v === 'object' && '__ts' in v) ? Timestamp.fromMillis(v.__ts) : v; } return o; };
+
+async function doBackup() {
+    toast('جاري تجهيز النسخة...');
+    const out = { app: 'sawaqi', version: 1, exportedAt: Date.now(), settings: null, shops: [], directory: [] };
+    const st = await getDoc(doc(db, 'settings', 'main'));
+    if (st.exists()) out.settings = toPlain(st.data());
+    const sSnap = await getDocs(collection(db, 'shops'));
+    for (const d of sSnap.docs) {
+        const p = await getDocs(collection(db, 'shops', d.id, 'products'));
+        out.shops.push({ id: d.id, data: toPlain(d.data()), products: p.docs.map(x => ({ id: x.id, data: toPlain(x.data()) })) });
+    }
+    const dSnap = await getDocs(collection(db, 'directory'));
+    out.directory = dSnap.docs.map(d => ({ id: d.id, data: toPlain(d.data()) }));
+
+    const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sawaqi-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast(`تم تحميل النسخة: ${out.shops.length} محل و ${out.directory.length} رقم`);
+}
+
+async function doRestore(file) {
+    let data;
+    try { data = JSON.parse(await file.text()); } catch { return toast('الملف غير صالح.'); }
+    if (!data || data.app !== 'sawaqi' || !Array.isArray(data.shops)) return toast('ده مش ملف نسخة احتياطية للموقع.');
+    const nProducts = data.shops.reduce((a, s) => a + (s.products || []).length, 0);
+    if (!confirm(`هيتم استعادة ${data.shops.length} محل و ${nProducts} منتج و ${(data.directory || []).length} رقم. البيانات الموجودة بنفس الأرقام هتتكتب فوقها. نكمل؟`)) return;
+
+    const ops = [];
+    if (data.settings) ops.push([doc(db, 'settings', 'main'), fromPlain(data.settings)]);
+    for (const s of data.shops) {
+        ops.push([doc(db, 'shops', s.id), fromPlain(s.data)]);
+        for (const p of (s.products || [])) ops.push([doc(db, 'shops', s.id, 'products', p.id), fromPlain(p.data)]);
+    }
+    for (const d of (data.directory || [])) ops.push([doc(db, 'directory', d.id), fromPlain(d.data)]);
+
+    toast('جاري الاستعادة...');
+    for (let i = 0; i < ops.length; i += 300) {
+        const b = writeBatch(db);
+        ops.slice(i, i + 300).forEach(([ref, d]) => b.set(ref, d));
+        await b.commit();
+    }
+    toast('تمت الاستعادة بنجاح.');
 }
 
 /* ================= Auth modal ================= */
@@ -478,14 +827,21 @@ function setTab(tab) {
 }
 const closeAuth = () => $('#authModal').classList.add('modal-hidden');
 
+function fillForgot() {
+    $('#forgotBox').innerHTML = `كلّم الدعم على واتساب وقولهم رقمك، وهيتم تجهيز حسابك من جديد ومحلك ومنتجاتك بترجع زي ما هي:<br>` +
+        support.map(p => `<a href="${waLink(p, 'نسيت كلمة المرور. رقمي: ')}" target="_blank" rel="noopener" class="font-bold underline mx-1" dir="ltr">${esc(p)}</a>`).join(' ');
+}
+
 $('#loginForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!configured) return toast('اربط Firebase الأول.');
+    const phone = normPhone($('#lPhone').value);
+    if (!validPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح (مثال: 01012345678)');
     try {
-        await signInWithEmailAndPassword(auth, $('#lEmail').value.trim(), $('#lPass').value);
-        closeAuth();
-        e.target.reset();
+        await signInWithEmailAndPassword(auth, phoneEmail(phone), $('#lPass').value);
+        closeAuth(); e.target.reset();
         toast('تم تسجيل الدخول');
+        location.hash = '#dashboard';
     } catch (err) { toast(authError(err)); }
 });
 
@@ -493,63 +849,121 @@ $('#registerForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!configured) return toast('اربط Firebase الأول.');
     const name = $('#rShopName').value.trim();
-    const phone = $('#rPhone').value.replace(/\s/g, '');
-    if (!validEgyptPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح (مثال: 01012345678)');
-    if (shops.some(s => (s.name || '').trim() === name)) return toast('اسم المحل مسجل قبل كده، اختار اسم تاني.');
+    const phone = normPhone($('#rPhone').value);
+    const pass = $('#rPass').value;
+    if (!validPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح (مثال: 01012345678)');
+    if (pass.length < 6) return toast('كلمة المرور 6 حروف أو أرقام على الأقل.');
+    const id = intl(phone);
+    if (shops.some(s => s.id !== id && (s.name || '').trim() === name)) return toast('اسم المحل مسجل قبل كده، اختار اسم تاني.');
     try {
-        const cred = await createUserWithEmailAndPassword(auth, $('#rEmail').value.trim(), $('#rPass').value);
-        await setDoc(doc(db, 'shops', cred.user.uid), {
-            name, category: $('#rCategory').value, phone, createdAt: serverTimestamp()
-        });
-        closeAuth();
-        e.target.reset();
+        const existing = await getDoc(doc(db, 'shops', id));
+        await createUserWithEmailAndPassword(auth, phoneEmail(phone), pass);
+        if (!existing.exists()) {
+            await setDoc(doc(db, 'shops', id), {
+                name, category: $('#rCategory').value, phone,
+                about: '', hours: '', address: '', logo: '', icon: '',
+                open: true, visits: 0, productCount: 0, createdAt: serverTimestamp()
+            });
+            toast('تم إنشاء محلك! ابدأ أضف منتجاتك');
+        } else {
+            toast('تم ربط حسابك بمحلك الموجود.');
+        }
+        closeAuth(); e.target.reset();
         location.hash = '#dashboard';
-        toast('تم إنشاء محلك! ابدأ أضف منتجاتك');
     } catch (err) { toast(authError(err)); }
 });
 
-/* ================= Forms inside views (delegated) ================= */
+/* ================= Forms inside views ================= */
 document.addEventListener('submit', async e => {
-    if (e.target.id === 'productForm') {
-        e.preventDefault();
-        if (!user) return;
-        const btn = $('#pSubmit');
-        btn.disabled = true; btn.textContent = 'جاري الحفظ...';
-        try {
-            const file = $('#pImage').files[0];
-            const image = file ? await compressImage(file) : '';
-            await addDoc(collection(db, 'shops', user.uid, 'products'), {
-                name: $('#pName').value.trim(),
-                price: $('#pPrice').value.trim(),
-                desc: $('#pDesc').value.trim(),
-                image,
-                createdAt: serverTimestamp()
+    const f = e.target.id;
+    try {
+        if (f === 'productForm') {
+            e.preventDefault();
+            const id = dashShopId();
+            if (!id) return;
+            if (products.length >= MAX_PRODUCTS) return toast(`وصلت للحد الأقصى (${MAX_PRODUCTS} منتج). احذف منتج قديم الأول.`);
+            const btn = $('#pSubmit'); btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+            try {
+                const file = $('#pImage').files[0];
+                const image = file ? await compressImage(file, { max: 500, quality: 0.7, limit: 110000 }) : '';
+                const pRef = doc(collection(db, 'shops', id, 'products'));
+                const b = writeBatch(db);
+                b.set(pRef, { name: $('#pName').value.trim(), price: $('#pPrice').value.trim(), desc: $('#pDesc').value.trim(), image, createdAt: serverTimestamp() });
+                b.update(doc(db, 'shops', id), { productCount: increment(1) });
+                await b.commit();
+                e.target.reset(); $('#pPreview').classList.add('hidden');
+                toast('تم إضافة المنتج');
+            } finally { btn.disabled = false; btn.textContent = 'إضافة المنتج'; }
+        }
+        else if (f === 'shopForm') {
+            e.preventDefault();
+            const id = dashShopId();
+            const name = $('#eName').value.trim();
+            if (shops.some(s => s.id !== id && (s.name || '').trim() === name)) return toast('اسم المحل مستخدم، اختار اسم تاني.');
+            const upd = {
+                name, category: $('#eCategory').value,
+                about: $('#eAbout').value.trim(), hours: $('#eHours').value.trim(), address: $('#eAddress').value.trim(),
+                open: $('#eOpen').checked, icon: dash.icon || ''
+            };
+            if (dash.logo !== undefined) upd.logo = dash.logo;
+            await updateDoc(doc(db, 'shops', id), upd);
+            dash.logo = undefined;
+            toast('تم حفظ البيانات');
+        }
+        else if (f === 'dirForm') {
+            e.preventDefault();
+            const phone = normPhone($('#dPhone').value);
+            if (!validPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح.');
+            if (directory.some(x => x.phone === phone)) return toast('الرقم ده موجود في الدليل قبل كده.');
+            let last = 0; try { last = +localStorage.getItem('dir_last') || 0; } catch {}
+            if (!isAdmin && Date.now() - last < 60000) return toast('استنى دقيقة قبل ما تضيف رقم تاني.');
+            await addDoc(collection(db, 'directory'), { name: $('#dName').value.trim(), job: $('#dJob').value.trim(), phone, createdAt: serverTimestamp() });
+            try { localStorage.setItem('dir_last', String(Date.now())); } catch {}
+            e.target.reset();
+            toast('تمت الإضافة للدليل');
+        }
+        else if (f === 'adminShopForm') {
+            e.preventDefault();
+            const phone = normPhone($('#aPhone').value);
+            if (!validPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح.');
+            const id = intl(phone);
+            if (shopById(id)) return toast('الرقم ده عنده محل بالفعل.');
+            await setDoc(doc(db, 'shops', id), {
+                name: $('#aName').value.trim(), category: $('#aCat').value, phone,
+                about: '', hours: '', address: '', logo: '', icon: '',
+                open: true, visits: 0, productCount: 0, createdAt: serverTimestamp()
             });
             e.target.reset();
-            $('#pPreview').classList.add('hidden');
-            toast('تم إضافة المنتج لمحلك');
-        } catch (err) { toast(err.message && !err.code ? err.message : authError(err)); }
-        btn.disabled = false; btn.textContent = 'إضافة المنتج لمحلي';
-    }
-    if (e.target.id === 'shopForm') {
-        e.preventDefault();
-        const phone = $('#ePhone').value.replace(/\s/g, '');
-        if (!validEgyptPhone(phone)) return toast('اكتب رقم موبايل مصري صحيح');
-        try {
-            await updateDoc(doc(db, 'shops', user.uid), { name: $('#eName').value.trim(), phone });
-            toast('تم حفظ التعديل');
-        } catch (err) { toast(authError(err)); }
-    }
+            toast('تم إضافة المحل');
+        }
+    } catch (err) { toast(err && err.message && !err.code ? err.message : authError(err)); }
 });
 
 document.addEventListener('input', e => {
     if (e.target.id === 'searchInput') { searchText = e.target.value; renderGrid(); }
+    if (e.target.id === 'dirSearch') { dirSearch = e.target.value; renderDirectory(); }
 });
-document.addEventListener('change', e => {
-    if (e.target.id === 'pImage') {
-        const f = e.target.files[0], prev = $('#pPreview');
-        if (f) { prev.src = URL.createObjectURL(f); prev.classList.remove('hidden'); } else prev.classList.add('hidden');
-    }
+
+document.addEventListener('change', async e => {
+    const id = e.target.id;
+    try {
+        if (id === 'sortSel') { sortBy = e.target.value; renderGrid(); }
+        else if (id === 'pImage') {
+            const f = e.target.files[0], prev = $('#pPreview');
+            if (f) { prev.src = URL.createObjectURL(f); prev.classList.remove('hidden'); } else prev.classList.add('hidden');
+        }
+        else if (id === 'eLogo') {
+            const f = e.target.files[0]; if (!f) return;
+            const data = await compressImage(f, { max: 160, quality: 0.8, limit: 25000 });
+            dash.logo = data; dash.icon = '';
+            $('#logoPreview').innerHTML = avatar({ logo: data }, 'w-20 h-20 !text-4xl');
+            renderIconPicker();
+        }
+        else if (id === 'restoreFile') {
+            const f = e.target.files[0]; e.target.value = '';
+            if (f) await doRestore(f);
+        }
+    } catch (err) { toast(err && err.message && !err.code ? err.message : authError(err)); }
 });
 
 /* ================= Click actions ================= */
@@ -563,37 +977,54 @@ document.addEventListener('click', async e => {
         else if (a === 'closeAuth') closeAuth();
         else if (a === 'tabLogin') setTab('login');
         else if (a === 'tabRegister') setTab('register');
+        else if (a === 'forgot') { fillForgot(); $('#forgotBox').classList.toggle('hidden'); }
+        else if (a === 'togglePass') {
+            const inp = document.getElementById(el.dataset.target);
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+        }
         else if (a === 'cat') { currentFilter = el.dataset.cat; renderCats(); renderGrid(); }
         else if (a === 'logout') { await signOut(auth); location.hash = '#'; toast('تم تسجيل الخروج'); }
-        else if (a === 'resetPass') {
-            const email = $('#lEmail').value.trim();
-            if (!email) return toast('اكتب بريدك في خانة البريد الأول.');
-            await sendPasswordResetEmail(auth, email);
-            toast('بعتنا لك رابط إعادة تعيين كلمة المرور على البريد.');
+        else if (a === 'zoom') {
+            const p = products[+el.dataset.i];
+            if (p && safeImg(p.image)) { $('#lightboxImg').src = p.image; $('#lightbox').classList.remove('modal-hidden'); }
         }
+        else if (a === 'closeZoom') $('#lightbox').classList.add('modal-hidden');
+        else if (a === 'copy') await copyText(el.dataset.text);
+        else if (a === 'pickIcon') { dash.icon = el.dataset.icon; dash.logo = ''; $('#logoPreview').innerHTML = avatar({ icon: dash.icon }, 'w-20 h-20 !text-4xl'); renderIconPicker(); }
+        else if (a === 'rmLogo') { dash.logo = ''; $('#logoPreview').innerHTML = avatar({ icon: dash.icon }, 'w-20 h-20 !text-4xl'); }
         else if (a === 'delProduct') {
-            if (confirm('تأكيد حذف المنتج؟')) await deleteDoc(doc(db, 'shops', user.uid, 'products', el.dataset.id));
+            if (!confirm('تأكيد حذف المنتج؟')) return;
+            const id = dashShopId();
+            const b = writeBatch(db);
+            b.delete(doc(db, 'shops', id, 'products', el.dataset.id));
+            b.update(doc(db, 'shops', id), { productCount: increment(-1) });
+            await b.commit();
+            toast('تم حذف المنتج');
         }
-        else if (a === 'adminProducts') await loadAdminProducts(el.dataset.id);
-        else if (a === 'adminDelProduct') {
-            if (confirm('حذف المنتج ده؟')) {
-                await deleteDoc(doc(db, 'shops', el.dataset.shop, 'products', el.dataset.id));
-                el.closest('div').remove();
-            }
+        else if (a === 'delDir') {
+            if (confirm('حذف الرقم ده من الدليل؟')) await deleteDoc(doc(db, 'directory', el.dataset.id));
         }
+        else if (a === 'saveSupport') {
+            const nums = [...new Set($('#sPhones').value.split(/[\n,،]+/).map(normPhone).filter(validPhone))].slice(0, 5);
+            if (!nums.length) return toast('اكتب رقم واحد صحيح على الأقل.');
+            await setDoc(doc(db, 'settings', 'main'), { supportPhones: nums });
+            toast('تم حفظ أرقام الدعم');
+        }
+        else if (a === 'backup') await doBackup();
         else if (a === 'adminDelShop') {
+            const id = el.dataset.id;
             if (!confirm('حذف المحل وكل منتجاته نهائياً؟')) return;
-            const snap = await getDocs(collection(db, 'shops', el.dataset.id, 'products'));
+            const snap = await getDocs(collection(db, 'shops', id, 'products'));
             await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-            await deleteDoc(doc(db, 'shops', el.dataset.id));
+            await deleteDoc(doc(db, 'shops', id));
             toast('تم حذف المحل');
         }
     } catch (err) { toast(authError(err)); }
 });
 
-// أغلق النافذة عند الضغط خارجها
 $('#authModal').addEventListener('click', e => { if (e.target.id === 'authModal') closeAuth(); });
 
+renderFooter();
 render();
 </script>
 </body>

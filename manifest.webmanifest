@@ -1,0 +1,16 @@
+{
+  "name": "خدمات السواقي",
+  "short_name": "السواقي",
+  "description": "دليل محلات وخدمات قرية السواقي",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#f8fafc",
+  "theme_color": "#047857",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
