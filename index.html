@@ -803,13 +803,22 @@ async function doRestore(file) {
     }
     for (const d of (data.directory || [])) ops.push([doc(db, 'directory', d.id), fromPlain(d.data)]);
 
-    toast('جاري الاستعادة...');
-    for (let i = 0; i < ops.length; i += 300) {
-        const b = writeBatch(db);
-        ops.slice(i, i + 300).forEach(([ref, d]) => b.set(ref, d));
-        await b.commit();
+    // دفعات صغيرة (10 عمليات) عشان قواعد الأمان تتحمل كل دفعة
+    const STEP = 10;
+    let done = 0;
+    try {
+        for (let i = 0; i < ops.length; i += STEP) {
+            toast(`جاري الاستعادة... ${Math.min(i + STEP, ops.length)} / ${ops.length}`);
+            const b = writeBatch(db);
+            ops.slice(i, i + STEP).forEach(([ref, d]) => b.set(ref, d));
+            await b.commit();
+            done = Math.min(i + STEP, ops.length);
+        }
+    } catch (err) {
+        toast(`فشلت الاستعادة بعد ${done} من ${ops.length}. السبب: ${(err && (err.code || err.message)) || err}`);
+        return;
     }
-    toast('تمت الاستعادة بنجاح.');
+    toast(`تمت الاستعادة بنجاح (${ops.length} عنصر).`);
 }
 
 /* ================= Auth modal ================= */
